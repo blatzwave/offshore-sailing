@@ -6,33 +6,63 @@
 </head>
 <body>
     <script>
-        function getHDG() {
-            const inputHDG = 180;
-            return inputHDG;
+
+        async function getBoat() {
+            console.log("About to fetch boat data...");
+            const response = await fetch('/api');
+            const data = await response.json();
+            console.log(data);
+            document.getElementById("currHDG").textContent = data.hdg;
+            document.getElementById("currPOS").textContent = data.lat + ", "+ data.lon;
+            document.getElementById("currBSP").textContent = data.bsp;
+        }
+
+        const setHDG = (ev) => {
+            ev.preventDefault();
+            let manouver = {
+                time: Date.now(),
+                newHDG: document.getElementById('newHDG').value
+            };
+            const options = {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(manouver)
+            };
+
+            fetch('/api', options)
+            .then(response => response.json())
+            .then(json => console.log(json)); 
+
+            document.getElementById("currHDG").textContent = manouver.newHDG;
         };
 
-        const newHDG = getHDG();
-
-        const data = { newHDG };
-        const options = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    };
-
-    fetch('/api', options)
-        .then(response => response.json())
-        .then(json => console.log(json));    
-    
+        document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('btn').addEventListener('click', setHDG);
+        getBoat();
+        });
     </script>
     
     <h1>Offshore Sailing</h1>
     <p>This page will display a virtual boat's position, heading and speed as well as real-time wind speed and heading sourced from an API.</p>
 
-    <div id="latitude"></div>
-    <div id="longitude"></div>
+    <div id="boatData">
+        <div>Position: <span id="currPOS"></span></div>
+    <div>Heading: <span id="currHDG"></span></div>
+<div>Boat speed: <span id="currBSP"></span></div>
+    </div><p>
+    <div id="windData">
+       <div>True wind direction:</div> 
+        <div>True wind speed:</div>
+    </div>
+    <hr>
+    <div><form action=# method="POST">
+        <label for="newHDG">New Heading</label>
+        <input type="number" id="newHDG" min ="0" max="360">
+        <button type="submit" id='btn'>Submit</button>
+    </form></div>
+
 
    
  
