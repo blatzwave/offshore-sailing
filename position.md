@@ -16,7 +16,8 @@ Given a start point, initial bearing, and distance, this will calculate the dest
 
 **Formula:**
 
-φ2 = asin( sin φ1 ⋅ cos δ + cos φ1 ⋅ sin δ ⋅ cos θ )λ2 = λ1 + atan2( sin θ ⋅ sin δ ⋅ cos φ1, cos δ − sin φ1 ⋅ sin φ2 )
+	φ2 = asin( sin φ1 ⋅ cos δ + cos φ1 ⋅ sin δ ⋅ cos θ )  
+	λ2 = λ1 + atan2( sin θ ⋅ sin δ ⋅ cos φ1, cos δ − sin φ1 ⋅ sin φ2 )  
 
 where φ is latitude, λ is longitude, θ is the bearing (clockwise from north), δ is the angular distance d/R; d being the distance travelled, R the earth’s radius
 
@@ -56,13 +57,13 @@ Given a start point and a distance d along constant bearing θ, this will calcul
 
 **Formula:**
   
-  δ = d/R 	(angular distance)
-	φ2 = φ1 + δ ⋅ cos θ 	
-	Δψ = ln( tan(π/4 + φ2/2) / tan(π/4 + φ1/2) ) 	(‘projected’ latitude difference)
-	q = Δφ/Δψ (or cos φ for E-W line) 	
-	Δλ = δ ⋅ sin θ / q 	
-	λ2 = λ1 + Δλ 	
-  
+  	δ = d/R (angular distance)  
+  	φ2 = φ1 + δ ⋅ cos θ  
+	Δψ = ln( tan(π/4 + φ2/2) / tan(π/4 + φ1/2) ) 	(‘projected’ latitude difference)  
+  	q = Δφ/Δψ (or cos φ for E-W line)  
+  	Δλ = δ ⋅ sin θ / q  
+  	λ2 = λ1 + Δλ  
+
 where 	φ is latitude, λ is longitude, Δλ is taking shortest route (<180°), ln is natural log, R is the earth’s radius
 
 JavaScript:
