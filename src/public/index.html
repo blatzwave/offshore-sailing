@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Offshore Sailing</title>
+    
+</head>
+<body>
+    <script>
+        function getHDG() {
+            const inputHDG = 180;
+            return inputHDG;
+        };
+
+        const newHDG = getHDG();
+
+        const data = { newHDG };
+        const options = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    };
+
+    fetch('/api', options)
+        .then(response => response.json())
+        .then(json => console.log(json));    
+    
+    </script>
+    
+    <h1>Offshore Sailing</h1>
+    <p>This page will display a virtual boat's position, heading and speed as well as real-time wind speed and heading sourced from an API.</p>
+
+    <div id="latitude"></div>
+    <div id="longitude"></div>
+
+   
+ 
+
+</body>
+
+</html>

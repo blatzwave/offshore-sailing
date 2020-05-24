@@ -1,0 +1,27 @@
+{
+  "name": "offshore-sailing",
+  "version": "1.0.0",
+  "description": "Offshore sailing online simulator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blatzwave/offshore-sailing.git"
+  },
+  "keywords": [
+    "open-source",
+    "sailing",
+    "virtual-regatta"
+  ],
+  "author": "António Q Fernandes",
+  "license": "GPL-3.0-only",
+  "bugs": {
+    "url": "https://github.com/blatzwave/offshore-sailing/issues"
+  },
+  "homepage": "https://github.com/blatzwave/offshore-sailing#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
