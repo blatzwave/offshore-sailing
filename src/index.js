@@ -1,6 +1,6 @@
 const Boat = require('./boat.js');
 const express = require('express');
-global.fetch = require('node-fetch');
+const fetch = require('node-fetch');
 
 const app = express();
 const port = 3000;
@@ -10,10 +10,11 @@ let TWS, TWD;
 app.use(express.static('public'));
 app.use(express.json({ limit: '1mb' }));
 
-boat = new Boat(0,0,0);
+boat = new Boat(48.5,-38.6,0);
 
 // Send boat data to client
 app.get('/api', (request, response) => {
+    poll();
     console.log("Sending boat data...");
     response.json({
         lat: boat.lat,
@@ -28,13 +29,19 @@ app.get('/api', (request, response) => {
 // Receive new heading from client
 app.post('/api', (request, response) => {
     console.log("I got a request!");
+    
     console.log(request.body);
+    boat.hdg = request.body.newHDG;
+    poll();
+
     response.json({
         status: 'success',
-        newHDG: request.body.newHDG
+        newHDG: request.body.newHDG,
+        newBSP: boat.bsp
     });
-    boat.hdg = request.body.newHDG;
+    
     console.log("Confirmed boat heading: " + boat.hdg);
+    
 });
 
 // Listen for client
@@ -49,10 +56,17 @@ async function getWind(lat, lon) {
     return data;
 }
 
+function poll() {
 getWind(boat.lat, boat.lon)
 .then(data => {
     console.log(data.wind);
     TWS = data.wind.speed;
     TWD = data.wind.deg;
+    boat.calcTWA(TWD);
+    boat.calcBSP(TWS);
 });
+}
+
+//setInterval(poll, 5000);
+poll();
 

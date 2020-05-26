@@ -23,6 +23,7 @@
   "homepage": "https://github.com/blatzwave/offshore-sailing#readme",
   "dependencies": {
     "express": "^4.17.1",
-    "node-fetch": "^2.6.0"
+    "node-fetch": "^2.6.0",
+    "papaparse": "^5.2.0"
   }
 }

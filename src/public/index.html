@@ -35,9 +35,14 @@
 
             fetch('/api', options)
             .then(response => response.json())
-            .then(json => console.log(json)); 
+            .then(json => {
+                console.log("New bsp: " + json.newBSP);
+                document.getElementById("currBSP").textContent = json.newBSP;
+                document.getElementById("currHDG").textContent = json.newHDG;
+            }); 
 
-            document.getElementById("currHDG").textContent = manouver.newHDG;
+            
+            
         };
 
         document.addEventListener('DOMContentLoaded', () => {
