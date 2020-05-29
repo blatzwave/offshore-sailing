@@ -78,9 +78,10 @@ getWind(boat.lat, boat.lon)
   });
 
 setInterval(() => {
-  if (boat.distTravelled() > 50) {
+  if (boat.distTravelled() > 1800) {
     console.log("Calculating position...");
     boat.calcPos();
+    getWind(boat.lat, boat.lon);
   } else {
     console.log(`Distance travelled: ${boat.distTravelled()}m`);
   }
