@@ -17,6 +17,8 @@
             document.getElementById("currBSP").textContent = data.bsp;
             document.getElementById("currTWS").textContent = data.tws;
             document.getElementById("currTWD").textContent = data.twd;
+            document.getElementById("currTWA").textContent = data.twa;
+            console.log("Got boat data!");
         }
 
         const setHDG = (ev) => {
@@ -35,14 +37,9 @@
 
             fetch('/api', options)
             .then(response => response.json())
-            .then(json => {
-                console.log("New bsp: " + json.newBSP);
-                document.getElementById("currBSP").textContent = json.newBSP;
-                document.getElementById("currHDG").textContent = json.newHDG;
-            }); 
-
+            .then(json => console.log("New bsp: " + json.newBSP));
             
-            
+            getBoat();
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -52,11 +49,11 @@
     </script>
     
     <h1>Offshore Sailing</h1>
-    <p>This page will display a virtual boat's position, heading and speed as well as real-time wind speed and heading sourced from an API.</p>
 
     <div id="boatData">
         <div>Position: <span id="currPOS"></span></div>
     <div>Heading: <span id="currHDG"></span>&deg</div>
+    <div>True wind angle: <span id="currTWA"></span>&deg</div>
 <div>Boat speed: <span id="currBSP"></span> kts</div>
     </div><p>
     <div id="windData">
