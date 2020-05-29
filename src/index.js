@@ -6,7 +6,7 @@ require('dotenv').config();
 //console.log(process.env);
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Wind variable. Do these need to be global?
 let TWS, TWD;
@@ -51,16 +51,14 @@ app.post("/api", (request, response) => {
 
 // Listen for client
 app.listen(port, () =>
-  console.log(`Example app listening at http://localhost:${port}`)
+  console.log(`Starting server at ${port}`)
 );
 
 // Get wind data from openweathermap API
 async function getWind(lat, lon) {
   console.log(`About to fetch wind data for pos: ${lat} , ${lon}`);
   const APIkey = process.env.API_KEY;
-  let response = await fetch(
-    `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIkey}`
-  );
+  let response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIkey}`);
   let data = await response.json();
   return data;
 }

@@ -6,7 +6,7 @@ class Boat {
     this._lat = lat; // latitude
     this._lon = lon; // longitude
     this._hdg = hdg; // heading
-    this._bsp = 10; // boat speed
+    this._bsp = 0; // boat speed
     this._twa = 0; // true wind angle
     this._twd; // true wind direction
     this._tws; // true wind speed
