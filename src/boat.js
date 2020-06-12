@@ -1,22 +1,31 @@
-const fetch = require("node-fetch");
 const polar = require("./polar.json");
 
 class Boat {
-  constructor(lat, lon, hdg) {
+  constructor(bname, lat, lon, boatID) {
+    this._bname = bname; // boat name
     this._lat = lat; // latitude
     this._lon = lon; // longitude
-    this._hdg = hdg; // heading
+    this._hdg = 0; // heading
     this._bsp = 0; // boat speed
     this._twa = 0; // true wind angle
-    this._twd; // true wind direction
-    this._tws; // true wind speed
+    this._twd = 0; // true wind direction
+    this._tws = 0; // true wind speed
     this._lastlog = Date.now(); // timestamp of last position.
+    this._sid = boatID; // Sequential id.
+    this._id;
   }
 
   currPos() {
     console.log("Latitude: " + this._lat + ", Longitude: " + this._lon);
   }
 
+  //Getters
+  get id() {
+    return this._id;
+  }
+  get bname() {
+    return this._bname;
+  }
   get lat() {
     return this._lat;
   }
@@ -38,6 +47,11 @@ class Boat {
   get twd() {
     return this._twd;
   }
+  get sid() {
+    return this._sid;
+  }
+
+  // Setters
   set twd(TWD) {
     this._twd = TWD;
   }
@@ -46,6 +60,21 @@ class Boat {
   }
   set hdg(hdg) {
     this._hdg = hdg;
+  }
+  set bname(bname){
+    this._bname = bname;
+  }
+  set twa(twa){
+    this._twa = twa;
+  }
+  set bsp(bsp){
+    this._bsp = bsp;
+  }
+  set id(id){
+    this._id = id;
+  }
+  set sid(sid){
+    this._sid = sid;
   }
 
   updateBSP() {

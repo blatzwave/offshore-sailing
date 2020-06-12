@@ -1,78 +1,180 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>Offshore Sailing</title>
-    
-</head>
-<body>
+  </head>
+  <body>
     <script>
+      async function loadBoats() {
+        console.log("Fetching boat list...");
+        const response = await fetch("/list");
+        const data = await response.json();
+        data.forEach((element) => {
+        console.log(element._bname);
+        
+        let x = document.createElement("OPTION");
+        x.setAttribute("value", element._bname);
+        let t = document.createTextNode(element._bname);
+        x.appendChild(t);
+        document.getElementById("boats").appendChild(x);
+        });
+        console.log("Loaded boat list!");
+      }
+    
+      async function getBoat() {
+        console.log("About to fetch boat data...");
+        const response = await fetch("/api");
+        const data = await response.json();
+        console.log(data);
+        document.getElementById("boatName").textContent = data.bname;
+        document.getElementById("currHDG").textContent = data.hdg;
+        document.getElementById("currPOS").textContent =
+          data.lat + ", " + data.lon;
+        document.getElementById("currBSP").textContent = data.bsp;
+        document.getElementById("currTWS").textContent = data.tws;
+        document.getElementById("currTWD").textContent = data.twd;
+        document.getElementById("currTWA").textContent = data.twa;
+        console.log("Got boat data!");
+      }
 
-        async function getBoat() {
-            console.log("About to fetch boat data...");
-            const response = await fetch('/api');
-            const data = await response.json();
-            console.log(data);
-            document.getElementById("currHDG").textContent = data.hdg;
-            document.getElementById("currPOS").textContent = data.lat + ", "+ data.lon;
-            document.getElementById("currBSP").textContent = data.bsp;
-            document.getElementById("currTWS").textContent = data.tws;
-            document.getElementById("currTWD").textContent = data.twd;
-            document.getElementById("currTWA").textContent = data.twa;
-            console.log("Got boat data!");
-        }
+      const newBoat = (ev) => {
+        ev.preventDefault();
+        let newBoat = {
+          boatname: document.getElementById("boatname").value,
+          newLat: document.getElementById("newLat").value,
+          newLon: document.getElementById("newLon").value
+        };
+        const options = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(newBoat)
+          //body: "testing"
+        };
+        console.log("Sending new boat data...");
+        //console.log(options.body);
+        fetch("/new", options)
+          .then((response) => response.json())
+          .then((json) => console.log(json))
+          .then(getBoat());
+      };
 
-        const setHDG = (ev) => {
-            ev.preventDefault();
-            let manouver = {
-                time: Date.now(),
-                newHDG: document.getElementById('newHDG').value
-            };
-            const options = {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(manouver)
-            };
+      const setBoat = (ev) => {
+        ev.preventDefault();
+        let selBoat = {
+          selBoat: document.getElementById("boats").value,
+        };
+        const options = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(selBoat),
+          //body: selBoat,
+        };
+        console.log("Fetching selected boat: " + selBoat);
+        fetch("/list", options)
+          .then((response) => response.json())
+          .then((json) => console.log("Loaded boat: " + json._bname))
+          .then(getBoat());
+      };
 
-            fetch('/api', options)
-            .then(response => response.json())
-            .then(json => console.log("New bsp: " + json.newBSP));
-            
-            getBoat();
+      const setHDG = (ev) => {
+        ev.preventDefault();
+        let manouver = {
+          time: Date.now(),
+          newHDG: document.getElementById("newHDG").value,
+        };
+        const options = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(manouver),
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('btn').addEventListener('click', setHDG);
+        fetch("/api", options)
+          .then((response) => response.json())
+          .then((json) => console.log("New bsp: " + json.newBSP));
+
         getBoat();
-        });
+      };
+
+      const delBoat = (ev) => {
+        ev.preventDefault();
+        let target = document.getElementById("boatName").textContent;
+        console.log("About to delete " + target);
+        const options = {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ targetb: target })
+        };
+
+        fetch("/del", options)
+          .then((response) => response.json())
+          .then((json) => console.log("Boat deleted: " + json.bname));
+      };
+
+      document.addEventListener("DOMContentLoaded", () => {
+        
+        document.getElementById("boat-btn").addEventListener("click", setBoat);
+        document.getElementById("launch-btn").addEventListener("click", newBoat);
+        document.getElementById("btn").addEventListener("click", setHDG);
+        document.getElementById("del-btn").addEventListener("click", delBoat);
+        loadBoats();
+        getBoat();
+      });
     </script>
-    
+
     <h1>openOcean</h1>
     <h3>Open-source, virtual offshore sailing!</h3>
-    <p>Real-time wind data from <a href="https://openweathermap.org/">openweathermap.org</a>.</p>
-<p>This is a work in progress. Take the helm and travel the world!</p>
+    <p>
+      Real-time wind data from
+      <a href="https://openweathermap.org/">openweathermap.org</a>.
+    </p>
+    <p>This is a work in progress. Take the helm and travel the world!</p>
+    <div class="selBoat">
+        <form>
+            <label for="selBoat">Choose a boat:</label>
+            <select name="selBoat" id="boats"></select>
+            <button type="submit" id="boat-btn">Load Boat</button>
+          </form>
+    </div><p></p>
+    <div class="newBoat">
+        <p>Or launch an new boat.</p>
+        <form>
+            <label for="newBoat">Name:</label>
+            <input type="text" id="boatname"><br>
+            <label for="newLat">Latitude:</label>
+            <input type="text" id="newLat"><br>
+            <label for="newLon">Longitude:</label>
+            <input type="text" id="newLon"><br>
+            <button type="submit" id="launch-btn">Launch Boat</button>
+          </form>
+    </div><p></p>
     <div id="boatData">
-        <div>Position: <span id="currPOS"></span></div>
-    <div>Heading: <span id="currHDG"></span>&deg</div>
-    <div>True wind angle: <span id="currTWA"></span>&deg</div>
-<div>Boat speed: <span id="currBSP"></span> kts</div>
-    </div><p>
-    <div id="windData">
-       <div>True wind direction: <span id="currTWD"></span>&deg</div> 
-        <div>True wind speed: <span id="currTWS"></span> kts</div>
+      <div id="boatName"></div>
+      <div>Position: <span id="currPOS"></span></div>
+      <div>Heading: <span id="currHDG"></span>&deg</div>
+      <div>True wind angle: <span id="currTWA"></span>&deg</div>
+      <div>Boat speed: <span id="currBSP"></span> kts</div>
     </div>
-    <hr>
-    <div><form action=# method="POST">
+    <p></p>
+    <div id="windData">
+      <div>True wind direction: <span id="currTWD"></span>&deg</div>
+      <div>True wind speed: <span id="currTWS"></span> kts</div>
+    </div>
+    <hr />
+    <div>
+      <form action="#" method="POST">
         <label for="newHDG">New Heading</label>
-        <input type="number" id="newHDG" min ="0" max="360">
-        <button type="submit" id='btn'>Submit</button>
-    </form></div>
-
-
-   
- 
-
-</body>
-
+        <input type="number" id="newHDG" min="0" max="360" />
+        <button type="submit" id="btn">Submit</button>
+      </form>
+      <button type="submit" id="del-btn">Delete boat</button>
+    </div>
+  </body>
 </html>
