@@ -5,12 +5,8 @@ An online application to simulate sailing high performance boats offshore by con
 
 The project needs a name. Here are some options:
 
-* offShore
-* Nocean
-* SailJS
-* Navnode
 * openOcean
-* JShore
+* nOcean
 
 ## Goal ##
 
@@ -51,9 +47,9 @@ As the project creator, I have a personal goal of developing javascript coding s
 ## Running locally
 
 1. Install nodejs (www.nodejs.org)
-2. Clone repo to loacal folder
-3. Navigate to /src folder using your command line
-4. Run: `node index.js` to run local server
+2. Clone repo to local folder
+3. Navigate to project folder using your command line
+4. Run: `node run dev` to run local server
 5. Use browser to visit `localhost:3000`
 
 # Contributions are welcome! #
