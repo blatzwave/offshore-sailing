@@ -1,6 +1,10 @@
 # offshore-sailing
 An online application to simulate sailing high performance boats offshore by continuos computing of their position, heading and speed.
 
+# IMPORTANT! : There are security vunerabilities in the following packages:  nedb ,  express, qs,  body-parser,  path-to-regexp .
+
+# REPO ARCHIVED.
+
 ## Project Names: ##
 
 The project needs a name. Here are some options:
