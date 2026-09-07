@@ -140,3 +140,64 @@ authentication already on the list above becomes a prerequisite rather than a ni
 per-boat compute stays trivial — a thousand boats each taking one rhumb-line step every
 five seconds is nothing. What actually scales is GRIB storage and the routing calculations
 behind the standings.
+
+## Stack and hosting for multiplayer
+
+One constraint decides most of this: **the server has to run continuously**, because boats
+sail while players are offline. That rules out the whole serverless tier — Lambda, Vercel
+functions, Cloudflare Workers — since "free tier" on those platforms means scaling to zero,
+which is the one thing this workload cannot do. The compute itself is trivial; the box is
+being rented to stay awake, not to be fast.
+
+- **Runtime:** stay on Node and Express. Nothing here wants a rewrite. One process, single
+  writer.
+- **Database:** SQLite on the box via `better-sqlite3`, with Litestream streaming a
+  continuous backup to object storage. The data is tiny — a boat record is a couple of
+  hundred bytes, so a thousand players is ~200KB and the fleet lives in RAM. Move off NeDB
+  at this point: joins for users-to-boats and real transactions for race results are worth
+  having.
+- **Auth:** self-hosted. Email and password with `bcrypt` and a signed session cookie is
+  about a hundred lines and free forever; Better Auth is a fair library alternative. Prefer
+  GitHub or Google OAuth as the main path, because it removes password resets, which are
+  the part that actually costs money (see email below). Managed auth is free at this scale
+  but adds lock-in for little gain.
+- **TLS and proxy:** Caddy, for automatic Let's Encrypt certificates in about four lines.
+- **Weather:** NOAA GFS, pulled through the NOMADS filter so only the 10m wind components
+  are requested. That is the difference between a few megabytes and a gigabyte per run.
+- **Host:** one small VPS, *not* Heroku. Heroku dynos have ephemeral filesystems and cycle
+  daily, which destroys both SQLite and the GRIB cache, forcing managed Postgres and
+  external storage — roughly $12/month spent fighting the architecture. A VPS with a real
+  disk is cheaper and simpler. Hetzner is the value leader, with Vultr, DigitalOcean and
+  Netcup in the same territory.
+
+Rough monthly cost, as at September 2026 — worth re-checking, since these drift:
+
+| Item | Monthly |
+| --- | --- |
+| VPS (2 vCPU, 4GB, 40GB disk) | ~$4-5 |
+| Domain, amortised | ~$1 |
+| TLS, database, auth, weather data | $0 |
+| Backups to R2 or B2, inside free tiers | ~$0 |
+| **Total** | **~$5-6** |
+
+That covers several hundred concurrent players comfortably and probably low thousands.
+
+**Do not persist every boat every tick.** A thousand boats written every five seconds is 17
+million writes a day, which is the pattern that convinces people they need an expensive
+database. Hold the fleet in memory and write on player actions, every few minutes, and on
+shutdown. Boat state is deterministic from position, heading, wind and elapsed time, so a
+crash costs minutes of simulation rather than data. This one decision is the difference
+between a $5 server and a $50 one.
+
+**The daily sched is the only cost that scales with players.** A thousand players receiving
+a position report daily is 30,000 emails a month, which breaks every transactional email
+free tier (Resend allows 3,000). Cheapest first: make the sched a page people visit, or use
+web push, or budget ~$20/month for email once the fleet is large. Build it as a page first.
+
+**Keep the tick in exactly one process.** Running two app instances for redundancy would
+have both advancing the same fleet, and boats would sail at double speed. Single writer; if
+failover is ever wanted, make it cold.
+
+**What not to add:** Redis, Kubernetes, a message queue, a separate worker tier, managed
+Postgres. Each solves a scale problem this project will not have, and keeping the whole
+game in one Node process on one small box is what holds the bill at five dollars.
