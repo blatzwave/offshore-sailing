@@ -19,16 +19,37 @@
   openweathermap.org key. Until then the server falls back to a simulated breeze and the
   dashboard reads SIMULATED WIND. Note that a key can take a couple of hours to activate,
   and the original 2020 key may have lapsed — either way it shows up as a 401 in the log.
+In rough priority order:
+
+- **Autopilot holding a true wind angle** rather than a compass heading. Best value for the
+  work of anything on this list. The boat then responds to shifts on its own, which turns
+  the game from "set a heading and watch it go stale" into "set a strategy and let it run",
+  and it is how boats are actually sailed offshore. It also makes being away from the
+  dashboard survivable.
+- **Forecast wind, not just current conditions.** The sim fetches current wind at the boat's
+  position, which is enough to move a boat but not to plan a passage. Without a forecast
+  field over an area the player is reacting blindly and skill cannot express itself, so a
+  good router and a coin flip score about the same. NOAA GFS GRIBs are free. This is the
+  largest single piece of work here and it blocks both the passage-planning premise and
+  racing (see below).
+- Land collision. See _Depth and land: the approach_ below.
 - Apparent wind angle and speed (AWA/AWS) from boat speed and true wind.
-- Land collision and depth. See _Depth and land: the approach_ below.
+- A deliberately minimal map: own position and track only, no weather overlay. The point of
+  the project is that real charting and routing tools work against it, so an in-game map
+  good enough to replace Windy would remove the reason to prefer this over other sims.
+- Depth. Lower priority than it looks — see the note in the depth section below.
 - Speed and course over ground, once tide/current is modelled — until then boat speed through the water is all the simulator knows.
 - Sail configuration, which the current polar table has no dimension for.
-- Multiplayer: the server currently keeps a single boat in memory. Supporting more means
-  per-player boat state and sessions rather than one module-level `boat`.
+- Multiplayer and racing. See _Multiplayer and racing_ below.
 
 ## Depth and land: the approach
 
-Two separate questions that want two different data structures.
+Two separate questions that want two different data structures. Note the priority gap
+between them: land collision is what makes routing decisions real, since islands and
+headlands are what a route has to be planned around. Depth barely matters offshore — a
+boat is over abyssal plain for most of a crossing and the instrument reads 4000-something
+metres for weeks on end. Build the coastline half; the bathymetry half can wait until
+there is coastal sailing worth the effort.
 
 **Am I aground?** A boundary, so store it as vector polygons rather than a raster. Natural
 Earth 1:10m coastline is about 10MB, gives an exact inside/outside test with no
@@ -61,3 +82,61 @@ is irrelevant and a real quadtree's per-node overhead can eat the savings being 
 or three fixed levels in a sparse tile pyramid, lazily loaded with a small LRU cache, gets
 essentially the whole benefit. Optimise for file size and for how easily the offline build
 can be re-run.
+
+## Multiplayer and racing
+
+Multiplayer is the retention mechanic, not a scaling exercise. A solo crossing loses its
+novelty around day ten with nothing pulling the player back; a fleet that left on the same
+Sunday and can be compared against daily is a different proposition. Correspondence chess
+works because someone is waiting.
+
+**Scheduled fleet starts, not rolling ones.** Everyone leaving at a fixed time puts the
+whole fleet on a shared clock, so players are on day nine together and have something to
+talk about. Rolling starts scatter everyone across different points of the course and
+there is no common ground.
+
+**The daily position report is the hook.** Real ocean racing has the sched at fixed times,
+when the fleet finds out simultaneously who gained overnight — it is the emotional spine of
+the Vendée Globe for anyone following from shore. One notification at a set hour with the
+standings gives an otherwise ambient game a reason to come back at a specific moment, and
+it is drawn from the sport rather than bolted on.
+
+**Between scheds, show a player only their own boat.** Withholding live competitor
+positions is the competitive differentiator. Virtual Regatta shows rivals on a map, so the
+game becomes covering and marking; if all a player has is their own instruments and the
+forecast, they have to commit to a route on conviction and find out later whether it paid.
+That is a purer test of navigation and nobody else offers it.
+
+**Rank by routed ETA, not distance to finish.** DTF is the obvious metric and the one the
+real trackers display, but it produces false leaders: a boat further away in a straight
+line but on the favoured side of a system is often genuinely ahead. Worse, ranking on it
+pushes players to sail at the mark instead of sailing the best route, which inverts the
+skill the game is meant to reward. Run the router from each boat on the current forecast
+and sort by projected finish time. Affordable at one calculation per boat every few hours.
+Display DTF by all means, just don't rank on it.
+
+**Charge a time penalty for manoeuvres.** Without one, a player checking every fifteen
+minutes beats a player checking twice a day on reaction time alone — attentiveness rather
+than skill, which breaks the premise. A realistic couple of minutes of lost speed for a
+gybe or sail change is physically accurate and removes the twitch advantage at the same
+time.
+
+**Racing makes shared, versioned weather mandatory.** Every boat must sail the same field,
+and two boats ticking at the same moment must read the same forecast run. That rules out
+per-boat current-conditions lookups and promotes the GRIB work from important to blocking.
+It is also what makes a result reproducible when someone disputes a finish.
+
+**Finish lines are lines.** Two coordinates crossed in the correct direction, detected as a
+segment intersection against the boat's movement during a tick. A point-based finish forces
+an arbitrary "close enough" radius. The same structure does start lines, and it is how real
+racing is scored.
+
+**One-design to begin with.** Everyone on the same polar. There is only one polar in the
+repo, the IMOCA60 is effectively a box rule anyway, and it avoids a category of balance
+work that is not needed yet.
+
+**Server changes.** `boat` becomes a collection, the tick iterates a fleet, and the user
+authentication already on the list above becomes a prerequisite rather than a nicety. The
+per-boat compute stays trivial — a thousand boats each taking one rhumb-line step every
+five seconds is nothing. What actually scales is GRIB storage and the routing calculations
+behind the standings.
