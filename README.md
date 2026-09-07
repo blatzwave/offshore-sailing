@@ -1,8 +1,6 @@
 # offshore-sailing
 An online application to simulate sailing high performance boats offshore by continuos computing of their position, heading and speed.
 
-# IMPORTANT! : There are security vunerabilities in the following packages:  nedb ,  express, qs,  body-parser,  path-to-regexp .
-
 # REPO ARCHIVED.
 
 ## Project Names: ##
@@ -24,14 +22,22 @@ As the project creator, I have a personal goal of developing javascript coding s
 
 ## Features (MVP) ##
 
+Built:
+
 * Launch boat at chosen coordinates
 * Change heading
-* Change sail configuration
 * View current position
+* View boat speed, true wind speed, true wind angle and true wind direction on a live instrument dashboard
+
+Still to do:
+
+* Change sail configuration
 * View current course over ground (CoG)
 * View current speed over ground (SoG)
 * View boat polar graphs
 * Land collision
+* Depth
+* Apparent wind angle and speed
 
 ## Proposed features ##
 
@@ -50,11 +56,19 @@ As the project creator, I have a personal goal of developing javascript coding s
 
 ## Running locally
 
-1. Install nodejs (www.nodejs.org)
+1. Install Node.js 18 or later (www.nodejs.org)
 2. Clone repo to local folder
 3. Navigate to project folder using your command line
-4. Run: `node run dev` to run local server
-5. Use browser to visit `localhost:3000`
+4. Run `npm install`
+5. Run `npm run dev` to start the local server
+6. Use browser to visit `localhost:3000`
+
+The boat sails on a simulated breeze out of the box. For real wind, copy `.env_sample`
+to `.env` and add an [openweathermap.org](https://openweathermap.org/) API key. The
+dashboard says which of the two it is reading.
+
+The simulator keeps one boat at a time and stores it in `database.db`. Launching a new
+boat replaces the current one.
 
 # Contributions are welcome! #
 

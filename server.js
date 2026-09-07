@@ -1,212 +1,190 @@
+const path = require("path");
 const Boat = require("./src/boat.js");
 const express = require("express");
-const fetch = require("node-fetch");
-const Datastore = require('nedb');
-require('dotenv').config();
+const Datastore = require("@seald-io/nedb");
+require("dotenv").config();
 
-let boat;
+const POSITION_TICK_MS = 5000; // local dead-reckoning, cheap
+const WIND_TICK_MS = 5 * 60 * 1000; // network call, kept well inside free-tier limits
+const MS_TO_KNOTS = 1.94384;
+const DEFAULT_BOAT = { bname: "Rocinante", lat: 48.5, lon: -38.6 };
+
+let boat; // the single active boat — this is a single-player simulator
+let windSource = "none"; // "live" | "simulated" | "none"
 
 //Expressjs
 const app = express();
 const port = process.env.PORT || 3000;
-app.use(express.static("./src/public"));
+app.use(express.static(path.join(__dirname, "src", "public")));
 app.use(express.json({ limit: "1mb" }));
 
 // neDB
-const database = new Datastore('database.db');
-database.loadDatabase();
-
-// MAIN  //////////////////////////////////////////////////////////////
-
-newBoat('boat', 48.5, -38.6);
-
-  database.count({}, function (err, count) {
-    console.log("Count: " + count);
-    console.error(err);
-    for (let i = 0; i <= count-1; i++) {
-      console.log("current SID:" + i);
-      database.findOne({ _sid: i }, function (err, doc) {
-      boat.bname = doc._bname; // boat name
-      boat.lon = doc._lon; // longitude
-      boat.lat = doc._lat; // latitude
-      boat.hdg = doc._hdg; // heading
-      boat.bsp = doc._bsp; // boat speed
-      boat.twa = doc._twa; // true wind angle
-      boat.twd = doc._twd; // true wind direction
-      boat.tws = doc._tws; // true wind speed
-      boat.lastlog = doc._lastlog; // timestamp of last position.
-      boat.sid = doc._sid; // Sequential id.
-      boat.id = doc._id;
-      weather();
-      boat.calcPos();
-      console.log("Calculated for SID:" + i);
-    });
-  }});
+const database = new Datastore({ filename: path.join(__dirname, "database.db"), autoload: true });
 
 // FUNCTIONS  ////////////////////////////////////////////////////////////
 
-// Remove current boat from database
-function deleteBoat(targetBoat){
-  database.remove({ _bname: targetBoat }, {}, function (err, numRemoved) {
-    // numRemoved = 1
-    console.log(`Deleted ${boat.bname} from database.`);
-  });
+// The stored document shape (underscore-prefixed, as the first version wrote it).
+function toDoc(b) {
+  const s = b.state();
+  return {
+    _bname: s.bname,
+    _lat: s.lat,
+    _lon: s.lon,
+    _hdg: s.hdg,
+    _bsp: s.bsp,
+    _twa: s.twa,
+    _twd: s.twd,
+    _tws: s.tws,
+    _lastlog: s.lastlog,
+  };
 }
 
-// Create boat at given coordinates and heading.
-function newBoat(bname, lat, lon) {
-  console.log("New boat instance!");
-  // Count all documents in the datastore
-  database.count({}, function (err, count) {
-    // Add sequential id to boat instance
-    console.log(`Total boats: ${count}`);
-    boat = new Boat(bname, lat, lon, count);
-    database.insert(boat, function (err, newEntry) {   // Callback is optional
-    console.log("New entry in DB: " + newEntry._bname);
-    //weather();
-    });
-  });
-  
-  
+// Write the boat's current state back to its stored document.
+async function persist() {
+  if (!boat || !boat.id) return;
+  await database.updateAsync({ _id: boat.id }, { $set: toDoc(boat) });
+}
+
+// Replace the active boat with a new one at the given coordinates.
+// Single-player: one boat per server, so the old record goes.
+async function newBoat(bname, lat, lon) {
+  await database.removeAsync({}, { multi: true });
+  boat = new Boat(bname, lat, lon);
+  const doc = await database.insertAsync(toDoc(boat));
+  boat.id = doc._id;
+  console.log(`Launched ${boat.bname} at ${boat.lat}, ${boat.lon}`);
+  await refreshWind();
+  return boat;
+}
+
+// Load the stored boat, or seed a default one on first run.
+async function loadBoat() {
+  const doc = await database.findOneAsync({});
+  if (doc) {
+    boat = Boat.fromDoc(doc);
+    console.log(`Loaded ${boat.bname} at ${boat.lat}, ${boat.lon}`);
+    await refreshWind();
+    return boat;
   }
-
-  function loadBoat(bname) {
-    database.findOne({_bname: bname }, function (err, doc) {
-      console.log('Found this in the DB: '+ doc._bname);
-
-      boat._bname = doc._bname; // boat name
-      boat._lat = doc._lat; // latitude
-      boat._lon = doc._lon; // longitude
-      boat._hdg = doc._hdg; // heading
-      boat._bsp = doc._bsp; // boat speed
-      boat._twa = doc._twa; // true wind angle
-      boat._twd = doc._twd;// true wind direction
-      boat._tws = doc._tws;// true wind speed
-      boat._lastlog = doc._lastlog; // timestamp of last position.
-      boat._sid = doc._sid; // seq ID
-    });
-    //weather();
-  }
-
-
+  return newBoat(DEFAULT_BOAT.bname, DEFAULT_BOAT.lat, DEFAULT_BOAT.lon);
+}
 
 // Get wind data from openweathermap API
 async function getWind(lat, lon) {
-  console.log(`About to fetch wind data for pos: ${lat} , ${lon}`);
   const APIkey = process.env.API_KEY;
-
-  let response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIkey}`);
-  let data = await response.json();
-  return data;
+  const response = await fetch(
+    `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${APIkey}`
+  );
+  if (!response.ok) throw new Error(`weather API responded ${response.status}`);
+  return response.json();
 }
 
-function weather() {
-  getWind(boat.lat, boat.lon)
-  .then((data) => {
-    console.log("Got wind data:");
-    console.log(data.wind);
-    boat.tws = data.wind.speed;
-    boat.twd = data.wind.deg;
+// Stand-in wind for running without an API key: a steady breeze that veers and
+// builds slowly, so the simulator is still usable offline. Flagged as simulated
+// in the API response so the dashboard can say so.
+function simulatedWind() {
+  const t = Date.now();
+  return {
+    deg: (240 + 15 * Math.sin(t / 600000) + 360) % 360,
+    knots: 14 + 4 * Math.sin(t / 900000),
+  };
+}
+
+async function refreshWind() {
+  if (!boat) return;
+
+  if (!process.env.API_KEY) {
+    const wind = simulatedWind();
+    boat.twd = Math.round(wind.deg);
+    boat.tws = Math.round(wind.knots * 10) / 10;
     boat.updateBSP();
-  })
-  .catch((error) => {
-    console.error("Error getting wind...");
-    console.error(error);
-  });
+    windSource = "simulated";
+    await persist();
+    return;
+  }
+
+  try {
+    const data = await getWind(boat.lat, boat.lon);
+    boat.twd = data.wind.deg;
+    boat.tws = Math.round(data.wind.speed * MS_TO_KNOTS * 10) / 10;
+    boat.updateBSP();
+    windSource = "live";
+    console.log(`Wind: ${boat.tws} kts from ${boat.twd}°`);
+    await persist();
+  } catch (error) {
+    // Keep sailing on the last known wind rather than stopping the boat.
+    console.error(`Could not refresh wind (${error.message}); keeping last reading.`);
+    if (windSource === "none") windSource = "simulated";
+  }
+}
+
+// Advance the boat's position by dead reckoning.
+async function tick() {
+  if (!boat) return;
+  boat.calcPos();
+  await persist();
+}
+
+function badRequest(response, message) {
+  return response.status(400).json({ status: "error", message });
+}
+
+function parseCoord(value, limit) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || Math.abs(n) > limit) return null;
+  return n;
 }
 
 // EXPRESS  ///////////////////////////////////////////////////////
 
-// Send boat list to client on request.
-app.get("/list", (request, response) => {
-  console.log(`Got a request ${request.body.json}`);
-  console.log("Sending boat list...");
-  database.find({}, function (err, doc) {
-    response.json(doc);
-    console.error(err);
-  });
-});
-
 // Send boat data to client on request.
 app.get("/api", (request, response) => {
-  console.log(`Got a request ${request}`);
-  console.log("Sending boat data...");
-  response.json({
-    bname: boat.bname,
-    lat: boat.lat,
-    lon: boat.lon,
-    bsp: boat.bsp,
-    hdg: boat.hdg,
-    twa: boat.twa,
-    tws: boat.tws,
-    twd: boat.twd,
-  });
-});
-
-// Receive delete order from client
-app.post("/del", (request, response) => {
-  console.log("I got a request!");
-  console.log(request.body);
-  deleteBoat(request.body.targetb);
-  response.json({
-    status: "success",
-    bname: boat.bname
-  });
-  console.log("Confirmed boat deleted: " + boat.bname);
-  
+  if (!boat) return response.status(503).json({ status: "error", message: "No boat yet" });
+  response.json({ ...boat.state(), windSource });
 });
 
 // Receive new heading from client
-app.post("/api", (request, response) => {
-  console.log("I got a request!");
+app.post("/api", async (request, response) => {
+  if (!boat) return response.status(503).json({ status: "error", message: "No boat yet" });
 
-  console.log(request.body);
-  boat.hdg = parseInt(request.body.newHDG);
-  database.update({ _sid: boat.sid }, { $set: { _hdg: boat.hdg } }, function (err, numReplaced) {
-    console.log("boat: " + boat.sid);
-    console.log(`Num replaced ${numReplaced}`);
-  });
+  const hdg = Number(request.body.newHDG);
+  if (!Number.isFinite(hdg) || hdg < 0 || hdg > 360) {
+    return badRequest(response, "Heading must be a number between 0 and 360");
+  }
+
+  // Bank the distance run on the old heading before turning.
+  boat.calcPos();
+  boat.hdg = hdg % 360;
   boat.updateBSP();
-  response.json({
-    status: "success",
-    newHDG: request.body.newHDG,
-    newBSP: boat.bsp,
-  });
-  console.log("Confirmed boat heading: " + boat.hdg);
+  await persist();
+
+  console.log(`New heading: ${boat.hdg}° — boat speed ${boat.bsp} kts`);
+  response.json({ status: "success", ...boat.state(), windSource });
 });
 
-// Receive boat selection from client
-app.post("/list", (request, response) => {
-  console.log("I got a request!");
-  console.log(request.body);
-  loadBoat(request.body.selBoat);
-  
-  response.json({
-    status: "success",
-  });
-  console.log("Boat selected: " + boat.bname);
-  
+// Receive new boat instruction from client
+app.post("/new", async (request, response) => {
+  const name = String(request.body.boatname || "").trim();
+  const lat = parseCoord(request.body.newLat, 90);
+  const lon = parseCoord(request.body.newLon, 180);
+
+  if (!name) return badRequest(response, "Boat needs a name");
+  if (lat === null) return badRequest(response, "Latitude must be between -90 and 90");
+  if (lon === null) return badRequest(response, "Longitude must be between -180 and 180");
+
+  await newBoat(name, lat, lon);
+  response.json({ status: "success", ...boat.state(), windSource });
 });
 
-// Receive new boat instruction client
-app.post("/new", (request, response) => {
-  console.log("I got a request!");
-  
-  let datar = request.body;
-  console.log(datar);
- // let datap = JSON.parse(datar);
-  console.log(datar);
-  newBoat(datar.boatname, request.body.newLat, request.body.newLon);
-  
-  response.json({
-    status: "success",
-    boatname: boat.bname
+// MAIN  //////////////////////////////////////////////////////////////
+
+loadBoat()
+  .then(() => {
+    setInterval(() => tick().catch((err) => console.error(err)), POSITION_TICK_MS);
+    setInterval(() => refreshWind().catch((err) => console.error(err)), WIND_TICK_MS);
+    app.listen(port, () => console.log(`Starting server at ${port}`));
+  })
+  .catch((error) => {
+    console.error("Failed to start:", error);
+    process.exit(1);
   });
-  console.log("Boat created: " + boat.bname);
-});
-
-// Listen for client
-app.listen(port, () =>
-  console.log(`Starting server at ${port}`)
-);
-

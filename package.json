@@ -2,10 +2,13 @@
   "name": "offshore-sailing",
   "version": "1.0.0",
   "description": "Offshore sailing online simulator",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev" : "nodemon server.js"
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "repository": {
     "type": "git",
@@ -23,10 +26,8 @@
   },
   "homepage": "https://github.com/blatzwave/offshore-sailing#readme",
   "dependencies": {
+    "@seald-io/nedb": "^4.1.2",
     "dotenv": "^8.2.0",
-    "express": "^4.17.1",
-    "nedb": "^1.8.0",
-    "node-fetch": "^2.6.0",
-    "papaparse": "^5.2.0"
+    "express": "^5.2.1"
   }
 }
