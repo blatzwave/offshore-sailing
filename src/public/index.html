@@ -12,7 +12,9 @@
         --label: #5d6b76;
         --value: #e8eef2;
         --wind: #ffb020;
+        --apparent: #5ec8e5;
         --live: #4ad07f;
+        --stop: #ff5e57;
         --sim: #ffb020;
         --dead: #6b757c;
         --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
@@ -31,7 +33,7 @@
       }
 
       .wrap {
-        max-width: 1200px;
+        max-width: 1320px;
         margin: 0 auto;
         padding: 20px 16px 48px;
       }
@@ -45,7 +47,7 @@
         gap: 8px 16px;
         padding-bottom: 14px;
         border-bottom: 1px solid var(--edge);
-        margin-bottom: 14px;
+        margin-bottom: 16px;
       }
 
       .vessel {
@@ -83,6 +85,7 @@
         height: 7px;
         border-radius: 50%;
         background: var(--dead);
+        flex: none;
       }
 
       .chip[data-state="live"] .dot {
@@ -97,15 +100,101 @@
       }
       .chip[data-state="simulated"] { color: var(--sim); }
 
+      /* Layout ------------------------------------------------------- */
+      .app {
+        display: grid;
+        grid-template-columns: 250px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+
+      /* Ship list ---------------------------------------------------- */
+      .fleet {
+        border: 1px solid var(--edge);
+        background: var(--pod);
+      }
+
+      .fleet h2 {
+        margin: 0;
+        padding: 14px 16px 12px;
+        font-size: 10px;
+        font-weight: normal;
+        letter-spacing: 0.26em;
+        color: var(--label);
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--edge);
+      }
+
+      .ship {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px 16px;
+        background: none;
+        border: none;
+        border-left: 2px solid transparent;
+        border-bottom: 1px solid var(--edge);
+        color: var(--label);
+        font-family: var(--mono);
+        font-size: 13px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .ship:last-child {
+        border-bottom: none;
+      }
+
+      .ship:hover {
+        color: var(--value);
+      }
+
+      .ship[aria-current="true"] {
+        background: #121820;
+        border-left-color: var(--wind);
+        color: var(--value);
+      }
+
+      /* Green under way, red stopped. */
+      .ship .dot[data-moving="true"] {
+        background: var(--live);
+        box-shadow: 0 0 7px var(--live);
+      }
+
+      .ship .dot[data-moving="false"] {
+        background: var(--stop);
+        box-shadow: 0 0 7px var(--stop);
+      }
+
+      .ship-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ship-speed {
+        font-variant-numeric: tabular-nums;
+        font-size: 12px;
+        color: var(--label);
+      }
+
+      .fleet .empty {
+        padding: 16px;
+        font-size: 11px;
+        line-height: 1.6;
+        color: var(--label);
+      }
+
       /* Instrument grid ---------------------------------------------- */
       .grid {
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 10px;
       }
 
       .pod {
-        grid-column: span 2;
         background: var(--pod);
         border: 1px solid var(--edge);
         padding: 18px 20px 20px;
@@ -129,7 +218,7 @@
       }
 
       .pod .value {
-        font-size: clamp(2.8rem, 7.5vw, 4.6rem);
+        font-size: clamp(2rem, 4.4vw, 3.4rem);
         line-height: 0.95;
         font-variant-numeric: tabular-nums;
         letter-spacing: -0.02em;
@@ -146,9 +235,14 @@
         color: var(--wind);
       }
 
-      /* Position bar */
+      /* Apparent wind reads in its own colour so the true/apparent pairs are
+         distinguishable at a glance. */
+      .pod.apparent .value {
+        color: var(--apparent);
+      }
+
       .pod.position {
-        grid-column: span 6;
+        grid-column: span 4;
         min-height: 0;
         flex-direction: row;
         align-items: center;
@@ -162,7 +256,7 @@
       }
 
       .coord .value {
-        font-size: clamp(1.3rem, 3vw, 1.9rem);
+        font-size: clamp(1.3rem, 2.6vw, 1.8rem);
         font-variant-numeric: tabular-nums;
       }
 
@@ -171,7 +265,7 @@
         display: grid;
         grid-template-columns: repeat(6, 1fr);
         gap: 10px;
-        margin-top: 26px;
+        margin-top: 22px;
       }
 
       fieldset {
@@ -222,7 +316,7 @@
       }
 
       .fields label {
-        flex: 1 1 90px;
+        flex: 1 1 80px;
       }
 
       button {
@@ -243,6 +337,11 @@
         color: var(--wind);
       }
 
+      button.danger:hover {
+        border-color: var(--stop);
+        color: var(--stop);
+      }
+
       .message {
         margin-top: 14px;
         min-height: 16px;
@@ -253,10 +352,13 @@
       }
 
       .message[data-kind="error"] {
-        color: #ff6b5e;
+        color: var(--stop);
       }
 
       @media (max-width: 900px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
         .grid,
         .controls {
           grid-template-columns: repeat(2, 1fr);
@@ -265,12 +367,12 @@
         fieldset {
           grid-column: span 1;
         }
-        .pod.position {
-          grid-column: span 2;
-          gap: 24px;
-        }
+        .pod.position,
         fieldset {
           grid-column: span 2;
+        }
+        .pod.position {
+          gap: 24px;
         }
       }
     </style>
@@ -292,99 +394,142 @@
         </div>
       </header>
 
-      <div class="grid">
-        <div class="pod">
-          <span class="label">Boat Speed</span>
-          <div class="readout">
-            <span class="value" id="bsp">—</span><span class="unit">kts</span>
-          </div>
-        </div>
+      <div class="app">
+        <nav class="fleet">
+          <h2>Ships</h2>
+          <div id="shipList"></div>
+        </nav>
 
-        <div class="pod">
-          <span class="label">Heading</span>
-          <div class="readout">
-            <span class="value" id="hdg">—</span><span class="unit">°T</span>
-          </div>
-        </div>
+        <main>
+          <div class="grid">
+            <div class="pod">
+              <span class="label">Boat Speed</span>
+              <div class="readout">
+                <span class="value" id="bsp">—</span><span class="unit">kts</span>
+              </div>
+            </div>
 
-        <div class="pod wind">
-          <span class="label">True Wind Speed</span>
-          <div class="readout">
-            <span class="value" id="tws">—</span><span class="unit">kts</span>
-          </div>
-        </div>
+            <div class="pod">
+              <span class="label">Heading</span>
+              <div class="readout">
+                <span class="value" id="hdg">—</span><span class="unit">°T</span>
+              </div>
+            </div>
 
-        <div class="pod wind">
-          <span class="label">True Wind Angle</span>
-          <div class="readout">
-            <span class="value" id="twa">—</span><span class="unit" id="twaSide">°</span>
-          </div>
-        </div>
+            <div class="pod wind">
+              <span class="label">True Wind Direction</span>
+              <div class="readout">
+                <span class="value" id="twd">—</span><span class="unit">°T</span>
+              </div>
+            </div>
 
-        <div class="pod wind">
-          <span class="label">True Wind Direction</span>
-          <div class="readout">
-            <span class="value" id="twd">—</span><span class="unit">°T</span>
-          </div>
-        </div>
+            <div class="pod">
+              <span class="label">Last Fix</span>
+              <div class="readout">
+                <span class="value" id="fix" style="font-size: clamp(1.4rem, 2.8vw, 2.1rem)">—</span>
+              </div>
+            </div>
 
-        <div class="pod">
-          <span class="label">Last Fix</span>
-          <div class="readout">
-            <span class="value" id="fix" style="font-size: clamp(1.6rem, 4vw, 2.6rem)">—</span>
-          </div>
-        </div>
+            <div class="pod wind">
+              <span class="label">True Wind Speed</span>
+              <div class="readout">
+                <span class="value" id="tws">—</span><span class="unit">kts</span>
+              </div>
+            </div>
 
-        <div class="pod position">
-          <div class="coord">
-            <div class="label">Latitude</div>
-            <div class="value" id="lat">—</div>
+            <div class="pod wind">
+              <span class="label">True Wind Angle</span>
+              <div class="readout">
+                <span class="value" id="twa">—</span><span class="unit" id="twaSide">°</span>
+              </div>
+            </div>
+
+            <div class="pod apparent">
+              <span class="label">Apparent Wind Speed</span>
+              <div class="readout">
+                <span class="value" id="aws">—</span><span class="unit">kts</span>
+              </div>
+            </div>
+
+            <div class="pod apparent">
+              <span class="label">Apparent Wind Angle</span>
+              <div class="readout">
+                <span class="value" id="awa">—</span><span class="unit" id="awaSide">°</span>
+              </div>
+            </div>
+
+            <div class="pod position">
+              <div class="coord">
+                <div class="label">Latitude</div>
+                <div class="value" id="lat">—</div>
+              </div>
+              <div class="coord">
+                <div class="label">Longitude</div>
+                <div class="value" id="lon">—</div>
+              </div>
+            </div>
           </div>
-          <div class="coord">
-            <div class="label">Longitude</div>
-            <div class="value" id="lon">—</div>
+
+          <div class="controls">
+            <fieldset>
+              <legend>Set Heading</legend>
+              <form id="hdgForm" class="fields">
+                <label>
+                  Heading °T
+                  <input type="number" id="newHDG" min="0" max="360" step="1" required />
+                </label>
+                <button type="submit">Steer</button>
+                <button type="button" class="danger" id="delBtn">Scuttle</button>
+              </form>
+            </fieldset>
+
+            <fieldset>
+              <legend>Launch Ship</legend>
+              <form id="newForm" class="fields">
+                <label>
+                  Name
+                  <input type="text" id="boatname" required />
+                </label>
+                <label>
+                  Lat
+                  <input type="number" id="newLat" min="-90" max="90" step="any" required />
+                </label>
+                <label>
+                  Lon
+                  <input type="number" id="newLon" min="-180" max="180" step="any" required />
+                </label>
+                <button type="submit">Launch</button>
+              </form>
+            </fieldset>
           </div>
-        </div>
+
+          <div class="message" id="message"></div>
+        </main>
       </div>
-
-      <div class="controls">
-        <fieldset>
-          <legend>Set Heading</legend>
-          <form id="hdgForm" class="fields">
-            <label>
-              Heading °T
-              <input type="number" id="newHDG" min="0" max="360" step="1" required />
-            </label>
-            <button type="submit">Steer</button>
-          </form>
-        </fieldset>
-
-        <fieldset>
-          <legend>Launch Boat</legend>
-          <form id="newForm" class="fields">
-            <label>
-              Name
-              <input type="text" id="boatname" required />
-            </label>
-            <label>
-              Lat
-              <input type="number" id="newLat" min="-90" max="90" step="any" required />
-            </label>
-            <label>
-              Lon
-              <input type="number" id="newLon" min="-180" max="180" step="any" required />
-            </label>
-            <button type="submit">Launch</button>
-          </form>
-        </fieldset>
-      </div>
-
-      <div class="message" id="message"></div>
     </div>
 
     <script>
       const REFRESH_MS = 5000;
       const el = (id) => document.getElementById(id);
+
+      let selectedId = null;
+
+      // Remembering the selected ship across reloads is a convenience, so a
+      // browser that refuses storage should not break the page.
+      try {
+        selectedId = localStorage.getItem("selectedShip");
+      } catch (error) {
+        selectedId = null;
+      }
+
+      function rememberSelection(id) {
+        selectedId = id;
+        try {
+          localStorage.setItem("selectedShip", id);
+        } catch (error) {
+          /* not fatal */
+        }
+      }
 
       // 48.5 -> "48° 30.000' N", as read off a chartplotter.
       function formatCoord(value, axis) {
@@ -411,18 +556,74 @@
         el("linkState").textContent = text;
       }
 
+      function renderList(boats) {
+        const list = el("shipList");
+
+        if (!boats.length) {
+          list.innerHTML = '<p class="empty">No ships afloat. Launch one below.</p>';
+          return;
+        }
+
+        list.replaceChildren(
+          ...boats.map((boat) => {
+            const row = document.createElement("button");
+            row.className = "ship";
+            row.type = "button";
+            row.setAttribute("aria-current", String(boat.id === selectedId));
+
+            const dot = document.createElement("span");
+            dot.className = "dot";
+            dot.dataset.moving = String(boat.moving);
+            dot.title = boat.moving ? "Under way" : "Stopped";
+
+            const name = document.createElement("span");
+            name.className = "ship-name";
+            name.textContent = boat.bname;
+
+            const speed = document.createElement("span");
+            speed.className = "ship-speed";
+            speed.textContent = Number(boat.bsp).toFixed(1);
+
+            row.append(dot, name, speed);
+            row.addEventListener("click", () => {
+              rememberSelection(boat.id);
+              render(boat);
+              renderList(boats);
+            });
+            return row;
+          })
+        );
+      }
+
+      function renderEmpty() {
+        el("boatName").textContent = "———";
+        for (const id of ["bsp", "hdg", "tws", "twd", "twa", "aws", "awa", "lat", "lon", "fix"]) {
+          el(id).textContent = "—";
+        }
+        el("twaSide").textContent = "°";
+        el("awaSide").textContent = "°";
+      }
+
+      // Instruments show a wind angle as a magnitude off the bow plus the side
+      // it's blowing from: 45°P is 45 degrees off to port. Dead ahead and dead
+      // astern have no side.
+      function renderWindAngle(valueId, sideId, angle) {
+        const deg = Number(angle);
+        const abs = Math.abs(deg);
+        el(valueId).textContent = pad3(abs);
+        el(sideId).textContent = abs < 0.5 || abs > 179.5 ? "°" : deg < 0 ? "°P" : "°S";
+      }
+
       function render(data) {
         el("boatName").textContent = data.bname || "———";
         el("bsp").textContent = Number(data.bsp).toFixed(1);
         el("hdg").textContent = bearing(data.hdg);
         el("tws").textContent = Number(data.tws).toFixed(1);
         el("twd").textContent = bearing(data.twd);
+        el("aws").textContent = Number(data.aws).toFixed(1);
 
-        // Instruments show the wind angle as a magnitude off the bow plus the side
-        // it's blowing from: 45°P is 45 degrees off to port.
-        const twa = Number(data.twa);
-        el("twa").textContent = pad3(Math.abs(twa));
-        el("twaSide").textContent = Math.abs(twa) < 0.5 || Math.abs(twa) > 179.5 ? "°" : twa < 0 ? "°P" : "°S";
+        renderWindAngle("twa", "twaSide", data.twa);
+        renderWindAngle("awa", "awaSide", data.awa);
 
         el("lat").textContent = formatCoord(Number(data.lat), "lat");
         el("lon").textContent = formatCoord(Number(data.lon), "lon");
@@ -431,41 +632,59 @@
           minute: "2-digit",
           second: "2-digit",
         });
-
-        el("windChip").dataset.state = data.windSource;
-        el("windSource").textContent =
-          data.windSource === "live" ? "live wind" : data.windSource === "simulated" ? "simulated wind" : "no wind data";
-
-        setLink("live", "receiving");
       }
 
-      async function getBoat() {
+      function renderWindSource(windSource) {
+        el("windChip").dataset.state = windSource;
+        el("windSource").textContent =
+          windSource === "live" ? "live wind" : windSource === "simulated" ? "simulated wind" : "no wind data";
+      }
+
+      async function refresh() {
         try {
-          const response = await fetch("/api");
-          if (!response.ok) throw new Error("no boat");
-          render(await response.json());
+          const response = await fetch("/api/boats");
+          if (!response.ok) throw new Error("fleet unavailable");
+          const { boats, windSource } = await response.json();
+
+          renderWindSource(windSource);
+
+          // Fall back to the first ship if the selected one is gone.
+          if (boats.length && !boats.some((b) => b.id === selectedId)) {
+            rememberSelection(boats[0].id);
+          }
+
+          renderList(boats);
+          const selected = boats.find((b) => b.id === selectedId);
+          if (selected) render(selected);
+          else renderEmpty();
+
+          setLink("live", "receiving");
         } catch (error) {
           setLink("none", "no signal");
         }
       }
 
-      async function post(url, payload) {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await response.json();
+      async function send(url, options) {
+        const response = await fetch(url, options);
+        const data = response.status === 204 ? {} : await response.json();
         if (!response.ok) throw new Error(data.message || "Request failed");
         return data;
       }
 
+      const asJson = (payload) => ({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
       el("hdgForm").addEventListener("submit", async (ev) => {
         ev.preventDefault();
+        if (!selectedId) return setMessage("No ship selected", "error");
         try {
-          const data = await post("/api", { newHDG: el("newHDG").value });
-          render(data);
-          setMessage(`Steering ${bearing(data.hdg)}°T — ${Number(data.bsp).toFixed(1)} kts`);
+          const { boat } = await send(`/api/boats/${selectedId}/heading`, asJson({ newHDG: el("newHDG").value }));
+          render(boat);
+          setMessage(`${boat.bname} steering ${bearing(boat.hdg)}°T — ${Number(boat.bsp).toFixed(1)} kts`);
+          refresh();
         } catch (error) {
           setMessage(error.message, "error");
         }
@@ -474,20 +693,39 @@
       el("newForm").addEventListener("submit", async (ev) => {
         ev.preventDefault();
         try {
-          const data = await post("/new", {
-            boatname: el("boatname").value,
-            newLat: el("newLat").value,
-            newLon: el("newLon").value,
-          });
-          render(data);
-          setMessage(`${data.bname} launched`);
+          const { boat } = await send(
+            "/api/boats",
+            asJson({
+              boatname: el("boatname").value,
+              newLat: el("newLat").value,
+              newLon: el("newLon").value,
+            })
+          );
+          rememberSelection(boat.id);
+          el("newForm").reset();
+          setMessage(`${boat.bname} launched`);
+          refresh();
         } catch (error) {
           setMessage(error.message, "error");
         }
       });
 
-      getBoat();
-      setInterval(getBoat, REFRESH_MS);
+      el("delBtn").addEventListener("click", async () => {
+        if (!selectedId) return setMessage("No ship selected", "error");
+        const name = el("boatName").textContent;
+        if (!confirm(`Scuttle ${name}? This cannot be undone.`)) return;
+        try {
+          await send(`/api/boats/${selectedId}`, { method: "DELETE" });
+          rememberSelection("");
+          setMessage(`${name} scuttled`);
+          refresh();
+        } catch (error) {
+          setMessage(error.message, "error");
+        }
+      });
+
+      refresh();
+      setInterval(refresh, REFRESH_MS);
     </script>
   </body>
 </html>

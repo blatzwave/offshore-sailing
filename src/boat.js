@@ -60,6 +60,8 @@ class Boat {
     this._twa = 0; // true wind angle, degrees (-180..180, negative = wind on port side)
     this._twd = 0; // true wind direction, degrees true
     this._tws = 0; // true wind speed, knots
+    this._awa = 0; // apparent wind angle, degrees (-180..180, negative = wind on port side)
+    this._aws = 0; // apparent wind speed, knots
     this._lastlog = Date.now(); // timestamp of last position fix.
   }
 
@@ -75,6 +77,9 @@ class Boat {
     boat._tws = Number(doc._tws) || 0;
     boat._lastlog = Date.now();
     boat._id = doc._id;
+    // Apparent wind is derived, so it isn't stored — recompute it rather than
+    // leave a loaded boat reading zero until the next wind refresh.
+    boat.updateApparentWind();
     return boat;
   }
 
@@ -106,6 +111,12 @@ class Boat {
   get twd() {
     return this._twd;
   }
+  get awa() {
+    return this._awa;
+  }
+  get aws() {
+    return this._aws;
+  }
 
   // Setters
   set twd(TWD) {
@@ -130,6 +141,26 @@ class Boat {
     // Negative = wind on the port side, positive = starboard.
     this._twa = ((this._twd - this._hdg + 540) % 360) - 180;
     this._bsp = polarSpeed(Math.abs(this._twa), this._tws);
+    this.updateApparentWind();
+  }
+
+  // Apparent wind is the vector sum of the true wind and the headwind the boat
+  // makes by moving. Deliberately computed against boat speed through the water,
+  // not speed over ground: once tide and current are modelled and the two
+  // diverge, using SOG here would be wrong.
+  //
+  //   AWS = √(TWS² + BSP² + 2·TWS·BSP·cos TWA)
+  //   AWA = atan2(TWS·sin TWA, TWS·cos TWA + BSP)
+  //
+  // The sign of TWA carries through, so port and starboard need no extra
+  // handling, and running faster than the wind flips AWA forward on its own.
+  updateApparentWind() {
+    const twa = toRad(this._twa);
+    const ahead = this._tws * Math.cos(twa) + this._bsp;
+    const abeam = this._tws * Math.sin(twa);
+
+    this._aws = Math.round(Math.hypot(ahead, abeam) * 10) / 10;
+    this._awa = Math.round(toDeg(Math.atan2(abeam, ahead)));
   }
 
   distTravelled() {
@@ -165,9 +196,13 @@ class Boat {
     this._lon = ((toDeg(λ2) + 540) % 360) - 180; // normalise to -180..180
   }
 
-  // Payload for the dashboard.
+  // Payload for the dashboard. `moving` is the rule behind the ship list's
+  // green/red light, kept here so it can later mean aground or becalmed
+  // without the client needing to change.
   state() {
     return {
+      id: this._id,
+      moving: this._bsp > 0,
       bname: this._bname,
       lat: this._lat,
       lon: this._lon,
@@ -176,6 +211,8 @@ class Boat {
       twa: this._twa,
       tws: this._tws,
       twd: this._twd,
+      awa: this._awa,
+      aws: this._aws,
       lastlog: this._lastlog,
     };
   }

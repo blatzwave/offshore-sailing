@@ -22,10 +22,12 @@ As the project creator, I have a personal goal of developing javascript coding s
 
 Built:
 
-* Launch boat at chosen coordinates
+* Launch ships at chosen coordinates
 * Change heading
 * View current position
-* View boat speed, true wind speed, true wind angle and true wind direction on a live instrument dashboard
+* Live instrument dashboard reading boat speed, true wind speed, true wind angle, true wind
+  direction, and apparent wind speed and angle
+* Multiple ships, listed with a green/red light showing under way or stopped
 
 Still to do:
 
@@ -35,12 +37,10 @@ Still to do:
 * View boat polar graphs
 * Land collision
 * Depth
-* Apparent wind angle and speed
 
 ## Proposed features ##
 
 * Mapping of boats with wind overlay
-* Multiple boats per player
 * Plotting of future positions (up to 24h)
 * Weather forecast
 * Racing
@@ -65,8 +65,9 @@ The boat sails on a simulated breeze out of the box. For real wind, copy `.env_s
 to `.env` and add an [openweathermap.org](https://openweathermap.org/) API key. The
 dashboard says which of the two it is reading.
 
-The simulator keeps one boat at a time and stores it in `database.db`. Launching a new
-boat replaces the current one.
+Ships are stored in `database.db` and keep sailing while the server runs. Launch as many as
+you like; the ship list on the left switches the instruments between them, and a green light
+means under way, red means stopped.
 
 # Contributions are welcome! #
 

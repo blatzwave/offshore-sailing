@@ -33,7 +33,6 @@ In rough priority order:
   largest single piece of work here and it blocks both the passage-planning premise and
   racing (see below).
 - Land collision. See _Depth and land: the approach_ below.
-- Apparent wind angle and speed (AWA/AWS) from boat speed and true wind.
 - A deliberately minimal map: own position and track only, no weather overlay. The point of
   the project is that real charting and routing tools work against it, so an in-game map
   good enough to replace Windy would remove the reason to prefer this over other sims.
@@ -135,8 +134,10 @@ racing is scored.
 repo, the IMOCA60 is effectively a box rule anyway, and it avoids a category of balance
 work that is not needed yet.
 
-**Server changes.** `boat` becomes a collection, the tick iterates a fleet, and the user
-authentication already on the list above becomes a prerequisite rather than a nicety. The
+**Server changes.** The fleet half of this is already done — `boat` is a `Map` of ships, the
+tick iterates all of them and each keeps its own wind. What remains is ownership: the user
+authentication already on the list above becomes a prerequisite rather than a nicety, and
+ships need to belong to players rather than to the server. The
 per-boat compute stays trivial — a thousand boats each taking one rhumb-line step every
 five seconds is nothing. What actually scales is GRIB storage and the routing calculations
 behind the standings.
