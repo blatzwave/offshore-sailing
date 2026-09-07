@@ -1,8 +1,6 @@
 # offshore-sailing
 An online application to simulate sailing high performance boats offshore by continuos computing of their position, heading and speed.
 
-# REPO ARCHIVED.
-
 ## Project Names: ##
 
 The project needs a name. Here are some options:
